@@ -131,7 +131,7 @@
 .train-delay {
     width: 25%;
     text-align: center;
-    color: #ffcc00; /* DB Yellow for delays */
+    color: red;
     font-weight: bold;
 }
 
