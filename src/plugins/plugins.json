@@ -34,5 +34,10 @@
         "display_name": "Screenshot",
         "id": "screenshot",
         "class": "Screenshot"
+    },
+    {
+        "display_name": "Timetable",
+        "id": "timetable2",
+        "class": "Timetable2"
     }
 ]

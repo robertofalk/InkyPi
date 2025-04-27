@@ -1,19 +1,25 @@
 import json
-from src.plugins.plugin_registry import load_plugins, get_plugin_instance
-from src.utils.image_utils import resize_image, change_orientation
+from plugins.plugin_registry import load_plugins, get_plugin_instance
+from utils.image_utils import resize_image, change_orientation
 from unittest.mock import patch, MagicMock
 from PIL import Image
 
-PLUGIN_CONFIG_FILE = "install/config_base/plugins.json"
+PLUGIN_CONFIG_FILE = "./src/plugins/plugins.json"
+# RESOLUTIONS = [
+#     [400, 300],	# Inky wHAT
+#     [640, 400], # Inky Impression 4"
+#     [600, 448], # Inky Impression 5.7"
+#     [800, 480], # Inky Impression 7.3"
+# ]
+
 RESOLUTIONS = [
-    [400, 300],	# Inky wHAT
-    [640, 400], # Inky Impression 4"
-    [600, 448], # Inky Impression 5.7"
     [800, 480], # Inky Impression 7.3"
 ]
-ORIENTATIONS = ["horizontal", "vertical"]
 
-plugin_id = "ai_text"
+# ORIENTATIONS = ["horizontal", "vertical"]
+ORIENTATIONS = ["horizontal"]
+
+plugin_id = "timetable2"
 plugin_settings = {
     "title": "Today In History",
     "textModel": "gpt-4o",
