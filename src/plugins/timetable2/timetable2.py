@@ -53,7 +53,7 @@ class Timetable2(BasePlugin):
                 next_day = now
 
             logger.info(f"Fetching timetable for hour: {hour}, day: {next_day}")
-            trains.extend(self.timetable_helper.get_timetable(hour=hour, day=next_day))
+            trains.extend(self.timetable_helper.get_timetable(hour=hour, date=next_day))
 
         if trains:
             for train in reversed(trains):
