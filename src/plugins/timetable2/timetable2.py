@@ -43,9 +43,17 @@ class Timetable2(BasePlugin):
             logger.info(f"Fetching timetable for hour: {hour}")
             trains = self.timetable_helper.get_timetable(hour=hour)
 
-        if self.last_fetch_timestamp.minute >= 30 and hour < 23:
-            logger.info(f"Fetching timetable for hour: {hour}")
-            trains.extend(self.timetable_helper.get_timetable(hour=hour + 1))
+        if self.last_fetch_timestamp.minute >= 30:
+
+            if hour == 23:
+                hour = 0
+                next_day = now + datetime.timedelta(days=1)
+            else:
+                hour += 1
+                next_day = now
+
+            logger.info(f"Fetching timetable for hour: {hour}, day: {next_day}")
+            trains.extend(self.timetable_helper.get_timetable(hour=hour, day=next_day))
 
         if trains:
             for train in reversed(trains):
