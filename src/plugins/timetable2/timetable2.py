@@ -29,18 +29,18 @@ class Timetable2(BasePlugin):
 
 
     def _update_trains(self):
-        self.last_fetch_timestamp = self.last_fetch_timestamp if self.last_fetch_timestamp else datetime.datetime.now() - datetime.timedelta(hours=1)
+
         trains = []
         now = datetime.datetime.now()
         difference = now - self.last_fetch_timestamp
         
         if difference.total_seconds() > 3600: # 1 hour
-            logger.info(f"Loading trains for {now}")
+            logger.info(f"Reloading trains for {now}")
             self.last_fetch_timestamp = now
             self.trains_cache.clear()
 
             logger.info(f"Fetching timetable for hour: {self.last_fetch_timestamp.hour}")
-            trains = self.timetable_helper.get_timetable(hour=self.last_fetch_timestamp.hour)
+            trains = self.timetable_helper.get_timetable(hour=self.last_fetch_timestamp.hour, date=now)
 
         if self.last_fetch_timestamp.minute >= 30:
 
@@ -78,7 +78,12 @@ class Timetable2(BasePlugin):
                     outdated = True
     
     def _check_for_train_changes(self):
-        logger.info("Loading train changes")
+        logger.info("Loading trains")
+
+        # update train list
+        self._update_trains()
+
+        # get all changes from the trains in the list
         trains_with_changes = self.timetable_helper.get_timetable_changes(self.trains_cache)
 
         trains = []
