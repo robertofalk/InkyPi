@@ -29,7 +29,6 @@ class Timetable2(BasePlugin):
 
 
     def _update_trains(self):
-
         trains = []
         now = datetime.datetime.now()
         difference = now - self.last_fetch_timestamp
@@ -39,20 +38,20 @@ class Timetable2(BasePlugin):
             self.last_fetch_timestamp = now
             self.trains_cache.clear()
 
-            logger.info(f"Fetching timetable for hour: {self.last_fetch_timestamp.hour}")
-            trains = self.timetable_helper.get_timetable(hour=self.last_fetch_timestamp.hour, date=now)
+            logger.info(f"Fetching timetable for hour: {now.hour}")
+            trains = self.timetable_helper.get_timetable(hour=now.hour, date=now)
 
-        if self.last_fetch_timestamp.minute >= 30:
+            # If we're past 30 minutes, also fetch next hour's trains
+            if now.minute >= 30:
+                if now.hour == 23:
+                    next_hour = 0
+                    next_day = now + datetime.timedelta(days=1)
+                else:
+                    next_hour = now.hour + 1
+                    next_day = now
 
-            if self.last_fetch_timestamp.hour == 23:
-                next_hour = 0
-                next_day = now + datetime.timedelta(days=1)
-            else:
-                next_hour = self.last_fetch_timestamp.hour + 1
-                next_day = now
-
-            logger.info(f"Fetching timetable for next hour: {next_hour}, day: {next_day}")
-            trains.extend(self.timetable_helper.get_timetable(hour=next_hour, date=next_day))
+                logger.info(f"Fetching timetable for next hour: {next_hour}, day: {next_day}")
+                trains.extend(self.timetable_helper.get_timetable(hour=next_hour, date=next_day))
 
         if trains:
             for train in reversed(trains):
@@ -68,7 +67,6 @@ class Timetable2(BasePlugin):
 
         outdated = False
         for train in reversed(self.trains_cache):
-
             if outdated:
                 logger.info(f"Train from {train.arrival_dt} removed")
                 self.trains_cache.remove(train)
@@ -141,7 +139,7 @@ class Timetable2(BasePlugin):
             RuntimeError(f"Failed to fetch weather data: {response.status_code}")
 
         weather_data = response.json()
-        logger.info(f"Weather data: {weather_data}")            
+        # logger.info(f"Weather data: {weather_data}")            
         
         weather_code = weather_data.get("current").get("weather_code")
 
