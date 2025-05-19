@@ -16,55 +16,68 @@ logger = logging.getLogger(__name__)
 class Timetable2(BasePlugin):
     def __init__(self, config, **dependencies) -> None:
         super().__init__(config, **dependencies)
+
         self.station = "Heidelberg-Kirchheim/Rohrbach"
         api = ApiAuthentication("d94981285852ebe2171442cb28e0d49c", "67dedde8868e4add4535f0cdd193b2d0")
         station_helper = StationHelper()
         found_stations_by_name = station_helper.find_stations_by_name("Kronau")
+
         self.timetable_helper = TimetableHelper(found_stations_by_name[0], api)
         self.trains_cache = []
-        self.loaded_hours = set()
+        self.last_fetch_timestamp = datetime.datetime.now() - datetime.timedelta(hours=1)
         self._update_trains()
+
 
     def _update_trains(self):
         logger.info("_update_trains called")
+
+        trains = []
         now = datetime.datetime.now()
-        current_hour = now.hour
+        difference = now - self.last_fetch_timestamp
 
-        # Load current hour if not already loaded
-        if current_hour not in self.loaded_hours:
-            logger.info(f"Loading trains for hour: {current_hour}")
-            trains = self.timetable_helper.get_timetable(hour=current_hour, date=now)
-            self.trains_cache = []
-            self.loaded_hours = {current_hour}
-            for train in trains:
-                if self.station in train.passed_stations or self.station not in train.stations:
-                    continue
-                train.arrival_dt = datetime.datetime.strptime(train.arrival, '%y%m%d%H%M')
-                self.trains_cache.append(train)
-            self.trains_cache.sort(key=lambda t: t.arrival_dt)
+        logger.info(f"Last fetch timestamp: {self.last_fetch_timestamp}, current time: {now}, Difference: {difference.total_seconds()} seconds")
+        
+        if difference.total_seconds() > 3600: # 1 hour
+            logger.info(f"Reloading trains for {now}")
+            self.last_fetch_timestamp = now
+            self.trains_cache.clear()
 
-        # After :30, load next hour if not already loaded
-        if now.minute >= 30:
-            if current_hour == 23:
+            logger.info(f"Fetching timetable for hour: {now.hour}")
+            trains = self.timetable_helper.get_timetable(hour=now.hour, date=now)
+        
+        if self.last_fetch_timestamp.minute < now.minute and now.minute >= 30:
+            
+            if now.hour == 23:
                 next_hour = 0
                 next_day = now + datetime.timedelta(days=1)
             else:
-                next_hour = current_hour + 1
+                next_hour = now.hour + 1
                 next_day = now
-            if next_hour not in self.loaded_hours:
-                logger.info(f"Loading trains for next hour: {next_hour}")
-                trains = self.timetable_helper.get_timetable(hour=next_hour, date=next_day)
-                for train in trains:
-                    if self.station in train.passed_stations or self.station not in train.stations:
-                        continue
-                    train.arrival_dt = datetime.datetime.strptime(train.arrival, '%y%m%d%H%M')
-                    self.trains_cache.append(train)
-                self.trains_cache.sort(key=lambda t: t.arrival_dt)
-                self.loaded_hours.add(next_hour)
 
-        # Remove outdated trains
-        self.trains_cache = [train for train in self.trains_cache if (train.arrival_dt - now).total_seconds() > 0]
+            logger.info(f"Fetching additional timetable for hour: {next_hour}, day: {next_day}")
+            trains.extend(self.timetable_helper.get_timetable(hour=next_hour, date=next_day))
 
+        if trains:
+            for train in reversed(trains):
+                if self.station in train.passed_stations or self.station not in train.stations:
+                    trains.remove(train)
+                    continue
+                train.arrival_dt = datetime.datetime.strptime(train.arrival, '%y%m%d%H%M')
+
+            trains.sort(key=lambda t: t.arrival_dt)
+            self.trains_cache.extend(trains)
+            logger.info(f"Updated train cache: {len(self.trains_cache)} trains")
+
+        outdated = False
+        for train in reversed(self.trains_cache):
+            if outdated:
+                logger.info(f"Train from {train.arrival_dt} removed")
+                self.trains_cache.remove(train)
+            else:
+                time_diff = now - train.arrival_dt
+                if time_diff.total_seconds() > 0:
+                    outdated = True
+    
     def _check_for_train_changes(self):
         logger.info("Loading trains")
 
